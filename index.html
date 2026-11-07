@@ -706,6 +706,7 @@ function renderAdmin(st) {
         </div>
         <div><button class="btn btn-ghost" id="btnSave" style="width:100%">💾 บันทึก</button></div>
       </div>
+      <div class="muted" id="chGroups" style="margin-top:8px"></div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px" class="muted">
         <label><input type="checkbox" id="shQ" style="width:auto" ${st.shuffleQ ? 'checked' : ''}> สุ่มลำดับข้อ</label>
         <label><input type="checkbox" id="shC" style="width:auto" ${st.shuffleC ? 'checked' : ''}> สุ่มลำดับตัวเลือก (อย่าเปิดถ้ามีตัวเลือก "ถูกทุกข้อ")</label>
@@ -763,6 +764,16 @@ function renderAdmin(st) {
         </div>
       </div>
     </div>`;
+
+  const showGroups = () => {
+    const ch = Number($('chSel').value), dc = A.st.deptChapters || {};
+    const yes = Object.keys(dc).filter(d => !dc[d] || dc[d].indexOf(ch) >= 0);
+    $('chGroups').innerHTML = yes.length
+      ? `กลุ่มที่เรียนบทที่ ${ch}: <b>${yes.map(esc).join(', ')}</b>`
+      : `<span style="color:var(--danger)">ไม่มีกลุ่มไหนเรียนบทที่ ${ch} (ตรวจคอลัมน์ Chapters ในชีต Departments)</span>`;
+  };
+  $('chSel').addEventListener('change', showGroups);
+  showGroups();
 
   $('btnSave').onclick = async () => {
     $('btnSave').disabled = true;
