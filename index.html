@@ -258,6 +258,7 @@ async function boot() {
     return renderMessage('ยังไม่ได้ตั้งค่า API_URLS ในไฟล์ index.html (วาง URL ของ Web App ที่ลงท้ายด้วย /exec)', 'error');
   }
   if (P.has('admin')) return adminBoot();
+  if (P.has('scores')) return scoresPage();
 
   const t = P.get('t');
   if (t) history.replaceState(null, '', location.pathname + (SUBJECT !== 'default' ? '?s=' + encodeURIComponent(SUBJECT) : ''));
@@ -270,7 +271,8 @@ async function boot() {
   if (tk && tk.exp > Date.now()) { setHeader(tk.title, tk.subtitle, tk.courseCode); return renderPick(tk); }
 
   api('info', {}, 1).then(r => r && r.ok && setHeader(r.title, r.subtitle, r.courseCode));
-  renderMessage('กรุณาสแกน QR Code จากหน้าจอผู้สอนเพื่อเข้าทำแบบทดสอบ', 'info');
+  renderMessage('กรุณาสแกน QR Code จากหน้าจอผู้สอนเพื่อเข้าทำแบบทดสอบ', 'info',
+    `<a class="btn btn-ghost" href="${scoresUrl()}" style="width:100%;text-decoration:none">📊 ดูคะแนนของฉัน</a>`);
 }
 
 /* ===================== STUDENT ===================== */
@@ -567,7 +569,74 @@ function renderResult(res, opt = {}) {
       <div style="margin:12px 0"><span class="badge ${cls}" style="font-size:16px">${esc(pct)}%</span></div>
       <div class="alert alert-success" style="justify-content:center">✅ บันทึกผลเรียบร้อยแล้ว</div>
       ${notes.map(n => `<div class="muted">${esc(n)}</div>`).join('')}
+      ${res.viewCode ? `
+        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+        <div class="muted">รหัสดูคะแนนของคุณ (ใช้ได้ทุกบท ควรจดหรือแคปเก็บไว้)</div>
+        <div style="font-family:'Inter',monospace;font-size:26px;font-weight:700;letter-spacing:4px;color:var(--accent);margin:4px 0 14px">${esc(res.viewCode)}</div>
+        <a class="btn btn-primary" href="${scoresUrl()}" style="width:100%;text-decoration:none">📊 ดูคะแนนทุกบทและคะแนนรวม</a>` : ''}
     </div>`;
+  if (res.viewCode && res.studentId) store.set('me', { id: res.studentId, code: res.viewCode });
+}
+
+/* ===================== ดูคะแนนของฉัน ===================== */
+function scoresUrl() {
+  return location.pathname + '?scores' + (SUBJECT !== 'default' ? '&s=' + encodeURIComponent(SUBJECT) : '');
+}
+
+async function scoresPage(err) {
+  api('info', {}, 1).then(r => r && r.ok && setHeader(r.title, r.subtitle, r.courseCode));
+  const me = store.get('me');
+  if (me && me.id && me.code && !err) return loadScores(me.id, me.code);
+  root.innerHTML = `
+    <div class="card" style="max-width:420px;margin:0 auto">
+      <div class="card-title">ดูคะแนนของฉัน</div>
+      ${err ? `<div class="alert alert-error">${esc(err)}</div>` : ''}
+      <div class="field-label">รหัสนักศึกษา</div>
+      <input id="scId" autocomplete="off" placeholder="เช่น 69172110571-4" value="${esc((me && me.id) || '')}">
+      <div class="field-label" style="margin-top:12px">รหัสดูคะแนน (6 ตัว ได้หลังส่งแบบทดสอบ)</div>
+      <input id="scCode" autocomplete="off" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-family:'Inter',monospace">
+      <button class="btn btn-primary" id="btnSc" style="width:100%;margin-top:16px">ดูคะแนน</button>
+      <div class="muted" style="margin-top:10px">ลืมรหัสดูคะแนน? ขอได้จากผู้สอน</div>
+    </div>`;
+  const go = () => {
+    const id = $('scId').value.trim(), code = $('scCode').value.trim().toUpperCase();
+    if (id && code) loadScores(id, code);
+  };
+  $('btnSc').onclick = go;
+  $('scCode').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+}
+
+async function loadScores(id, code) {
+  renderLoading('กำลังโหลดคะแนน…');
+  const res = await api('scores', { studentId: id, code });
+  if (!res.ok) { store.del('me'); return scoresPage(res.message); }
+  store.set('me', { id, code });
+  setHeader(res.title, res.subtitle, res.courseCode);
+  const sm = res.summary;
+  const pctCls = p => (p >= 80 ? 'badge-green' : p >= 50 ? 'badge-amber' : 'badge-red');
+  root.innerHTML = `
+    <div class="card">
+      <div class="card-title">คะแนนของฉัน</div>
+      <div style="font-weight:600">${esc(res.name)}</div>
+      <div class="muted">${esc(res.studentId)} · ${esc(res.department)}</div>
+      <div class="stats" style="margin-top:16px;grid-template-columns:repeat(3,1fr)">
+        <div class="stat"><b style="color:var(--accent)">${sm.score}<span style="font-size:14px;color:var(--muted)">/${sm.full}</span></b><span>คะแนนรวม</span></div>
+        <div class="stat"><b>${sm.avgPercent}%</b><span>เฉลี่ยบทที่สอบแล้ว</span></div>
+        <div class="stat"><b>${sm.doneCount}<span style="font-size:14px;color:var(--muted)">/${sm.chapterCount}</span></b><span>บทที่สอบแล้ว</span></div>
+      </div>
+      <div class="muted" style="margin-bottom:12px">คะแนนรวมคิดจากทุกบท บทที่ยังไม่ได้สอบนับเป็น 0</div>
+      <div class="table-wrap"><table style="min-width:0">
+        <thead><tr><th>บทที่</th><th>คะแนน</th><th>%</th><th>วันที่ส่ง</th></tr></thead>
+        <tbody>${res.items.map(i => i.done ? `
+          <tr><td>${i.ch}</td><td><b>${i.score}</b>/${i.total}</td>
+            <td><span class="badge ${pctCls(i.percent)}">${i.percent}%</span></td>
+            <td class="muted">${esc(i.date)}${i.auto ? '<br>ส่งอัตโนมัติ' : ''}${i.lateSec ? '<br>ส่งช้า' : ''}</td></tr>` : `
+          <tr><td>${i.ch}</td><td class="muted">—/${i.full}</td><td></td><td class="muted">ยังไม่ได้สอบ</td></tr>`).join('')}
+        </tbody>
+      </table></div>
+      <button class="btn btn-ghost" id="btnOut" style="width:100%;margin-top:16px">ออก (ให้คนอื่นใช้เครื่องนี้ดูคะแนน)</button>
+    </div>`;
+  $('btnOut').onclick = () => { store.del('me'); scoresPage(); };
 }
 
 /* ===================== ADMIN ===================== */
@@ -676,8 +745,8 @@ function renderAdmin(st) {
       </div>
       <div class="stats" id="stats"></div>
       <div class="table-wrap"><table>
-        <thead><tr><th>ชื่อ</th><th>รหัส</th><th>สถานะ</th><th>เวลาเหลือ / คะแนน</th><th>ออกจากหน้า</th><th>หมายเหตุ</th><th></th></tr></thead>
-        <tbody id="tbody"><tr><td colspan="7" class="muted">กำลังโหลด…</td></tr></tbody>
+        <thead><tr><th>#</th><th>ชื่อ</th><th>รหัส / รหัสดูคะแนน</th><th>สถานะ</th><th>เวลาเหลือ / คะแนน</th><th>ออกจากหน้า</th><th>หมายเหตุ</th><th></th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="8" class="muted">กำลังโหลด…</td></tr></tbody>
       </table></div>
       <div class="muted" id="lastUpd" style="margin-top:8px"></div>
     </div>
@@ -807,8 +876,6 @@ function renderStatus() {
     <div class="stat"><b style="color:var(--success)">${c.done}</b><span>ส่งแล้ว</span></div>
     <div class="stat"><b style="color:var(--danger)">${c.flag}</b><span>น่าสงสัย</span></div>`;
 
-  const order = { active: 0, none: 1, late: 2, auto: 2, submitted: 2 };
-  rows.sort((a, b) => (order[a.status] - order[b.status]) || a.name.localeCompare(b.name, 'th'));
   $('tbody').innerHTML = rows.length ? rows.map(r => {
     const [label, cls] = STATUS_LABEL[r.status] || [r.status, 'badge-gray'];
     let info = '';
@@ -822,21 +889,30 @@ function renderStatus() {
     if (r.status === 'active' && !r.deviceBound) notes.push('รอสแกนจากเครื่องใหม่');
     const flag = r.tabs >= 3 || r.blocked;
     return `<tr class="${flag ? 'flag' : ''}">
+      <td class="muted">${r.no}</td>
       <td>${esc(r.name)}<div class="muted">${esc(r.dept)}</div></td>
-      <td>${esc(r.id)}</td>
+      <td>${esc(r.id)}<div class="muted" style="font-family:'Inter',monospace;letter-spacing:1px">${esc(r.viewCode || '')}</div></td>
       <td><span class="badge ${cls}">${label}</span></td>
       <td>${info}</td>
       <td>${r.tabs ? `<span class="badge ${r.tabs >= 3 ? 'badge-red' : 'badge-amber'}">${r.tabs} ครั้ง</span>` : (r.status === 'none' ? '' : '0')}</td>
       <td class="muted">${esc(notes.join(' · '))}</td>
-      <td>${r.status === 'active' && r.deviceBound ? `<button class="btn btn-ghost btn-sm" data-unbind="${esc(r.id)}" data-name="${esc(r.name)}">ย้ายเครื่อง</button>` : ''}</td>
+      <td style="white-space:nowrap">${r.status === 'active' && r.deviceBound ? `<button class="btn btn-ghost btn-sm" data-unbind="${esc(r.id)}" data-name="${esc(r.name)}">ย้ายเครื่อง</button> ` : ''}${r.status !== 'none' ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" data-reset="${esc(r.id)}" data-name="${esc(r.name)}" data-dept="${esc(r.dept)}">รีเซ็ต</button>` : ''}</td>
     </tr>`;
-  }).join('') : `<tr><td colspan="7" class="muted">ไม่มีรายชื่อ</td></tr>`;
+  }).join('') : `<tr><td colspan="8" class="muted">ไม่มีรายชื่อ</td></tr>`;
 
   $('tbody').querySelectorAll('[data-unbind]').forEach(b => {
     b.onclick = async () => {
       if (!(await confirmBox(`ย้ายเครื่องให้ ${b.dataset.name}? นักศึกษาต้องสแกน QR ใหม่จากเครื่องใหม่ เวลาสอบเดินต่อจากเดิม`, 'ย้ายเครื่อง'))) return;
       const res = await api('admin.unbind', { pin: A.pin, studentId: b.dataset.unbind });
       toast(res.ok ? 'ปลดเครื่องแล้ว ให้นักศึกษาสแกน QR ใหม่' : res.message, res.ok ? 'success' : 'error', 4000);
+      refreshStatus();
+    };
+  });
+  $('tbody').querySelectorAll('[data-reset]').forEach(b => {
+    b.onclick = async () => {
+      if (!(await confirmBox(`รีเซ็ต ${b.dataset.name}? ระบบจะลบผลสอบบทที่ ${A.st.chapter} ของคนนี้ (ทั้งในชีต Sessions และชีตผลลัพธ์) แล้วให้สอบใหม่ได้`, 'ลบและให้สอบใหม่'))) return;
+      const res = await api('admin.reset', { pin: A.pin, studentId: b.dataset.reset, department: b.dataset.dept });
+      toast(res.ok ? `ลบแล้ว — ${b.dataset.name} สแกน QR สอบใหม่ได้` : res.message, res.ok ? 'success' : 'error', 4000);
       refreshStatus();
     };
   });
