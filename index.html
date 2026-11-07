@@ -37,7 +37,7 @@
     .card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:16px;border:1px solid var(--border)}
     .card-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
     .card-title::before{content:'';width:4px;height:16px;background:var(--accent2);border-radius:2px;display:block}
-    select,input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);font-family:inherit;font-size:15px;color:var(--text);outline:none;transition:border-color .15s}
+    select,input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);font-family:inherit;font-size:16px;color:var(--text);outline:none;transition:border-color .15s}
     select:focus,input:focus{border-color:var(--accent2);background:#fff;box-shadow:0 0 0 3px var(--tint)}
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;transition:all .15s}
     .btn-primary{background:var(--accent);color:#fff}
@@ -127,7 +127,30 @@
     #toast .alert{box-shadow:var(--shadow-lg);font-size:15px;font-weight:600}
     .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;padding-top:20px;border-top:1px solid var(--border)}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    @media (max-width:600px){
+      .table-wrap{border:0;overflow:visible}
+      .table-wrap table{min-width:0}
+      .table-wrap thead{display:none}
+      .table-wrap tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:#fff}
+      .table-wrap tr.flag{background:#fff7ed}
+      .table-wrap td{border:0;padding:0;background:transparent!important}
+      .table-wrap td:nth-child(1){grid-row:1/3;align-self:center;font-weight:600;color:var(--muted)}
+      .table-wrap td:nth-child(2){grid-column:2}
+      .table-wrap td:nth-child(3){grid-column:2;font-size:13px}
+      .table-wrap td:nth-child(4){grid-column:3;grid-row:1;text-align:right}
+      .table-wrap td:nth-child(5){grid-column:3;grid-row:2;text-align:right}
+      .table-wrap td:nth-child(6){grid-column:2/4;font-size:13px}
+      .table-wrap td:nth-child(6):not(:empty)::before{content:'ออกจากหน้า: ';color:var(--muted)}
+      .table-wrap td:nth-child(7){grid-column:2/4}
+      .table-wrap td:nth-child(8){grid-column:1/4;display:flex;gap:6px;flex-wrap:wrap}
+      .table-wrap td:nth-child(8):empty{display:none}
+      .table-wrap td[colspan]{grid-column:1/4}
+    }
     @media (max-width:540px){
+      .modal{padding:18px 14px}
+      .qr-wrap{justify-content:center}
+      .modal-qr{padding:8px}
+      .modal-qr img,.modal-qr canvas{width:min(62vh,calc(100vw - 80px))!important}
       .card{padding:18px}
       .qr-box{width:160px;height:160px}
       .timer-digits{font-size:22px}
@@ -763,7 +786,7 @@ function renderAdmin(st) {
     </div>
 
     <div class="card">
-      <div class="card-title">QR Code สำหรับนักศึกษา (เปลี่ยนทุก <span id="slotTitle">${st.slotSeconds}</span> วินาที)</div>
+      <div class="card-title"><span>QR Code สำหรับนักศึกษา (เปลี่ยนทุก <span id="slotTitle">${st.slotSeconds}</span> วินาที)</span></div>
       <div class="qr-wrap">
         <div>
           <div class="qr-box" id="qrBox" title="คลิกเพื่อขยาย"><div id="qrSmall"></div><div class="qr-closed">ปิดรับเข้าสอบ</div></div>
