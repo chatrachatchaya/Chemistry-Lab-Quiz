@@ -295,6 +295,9 @@ async function studentCheckin(t) {
 }
 
 function renderPick(tk) {
+  if (!(tk.departments || []).length) {
+    return renderMessage(`ยังไม่มีกลุ่มเรียนที่กำหนดให้สอบบทที่ ${tk.chapter} กรุณาแจ้งผู้สอน (ตรวจคอลัมน์ Chapters ในชีต Departments)`, 'warning');
+  }
   root.innerHTML = `
     <div class="steps">
       <div class="step active" id="stp1">1 · เลือกสาขา</div>
