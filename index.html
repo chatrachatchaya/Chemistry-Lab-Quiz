@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>แบบทดสอบออนไลน์</title>
+  <title>แบบทดสอบก่อนเรียนวิชาปฏิบัติการเคมีพื้นฐาน</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -581,7 +581,10 @@ function renderPin(err) {
       <div class="card-title">เข้าสู่ระบบผู้สอน</div>
       ${err ? `<div class="alert alert-error">${esc(err)}</div>` : ''}
       <div class="field-label">PIN</div>
-      <input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password">
+      <div style="display:flex;gap:8px">
+        <input id="pinIn" type="text" inputmode="numeric" autocomplete="off" placeholder="พิมพ์ PIN ที่ตั้งไว้ใน setup()" style="font-size:20px;letter-spacing:4px;font-family:'Inter',monospace">
+        <button class="btn btn-ghost" id="btnEye" type="button" style="flex-shrink:0" title="ซ่อน/แสดง">🙈</button>
+      </div>
       <button class="btn btn-primary" id="btnPin" style="width:100%;margin-top:14px">เข้าสู่ระบบ</button>
     </div>`;
   const go = async () => {
@@ -593,8 +596,13 @@ function renderPin(err) {
     A.pin = pin; sstore.set('pin', pin);
     renderAdmin(res);
   };
+  $('btnEye').onclick = () => {
+    const i = $('pinIn'), hide = i.type === 'text';
+    i.type = hide ? 'password' : 'text';
+    $('btnEye').textContent = hide ? '👁' : '🙈';
+  };
   $('btnPin').onclick = go;
-  $('pinIn').onkeydown = e => e.key === 'Enter' && go();
+  $('pinIn').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   $('pinIn').focus();
 }
 
