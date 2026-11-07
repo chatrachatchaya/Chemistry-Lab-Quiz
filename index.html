@@ -276,9 +276,25 @@ async function boot() {
 }
 
 /* ===================== STUDENT ===================== */
+function getPosition() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy || 0) }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  });
+}
+
 async function studentCheckin(t) {
   renderLoading('กำลังตรวจสอบ QR…');
-  const res = await api('checkin', { t, deviceId: deviceId() });
+  let res = await api('checkin', { t, deviceId: deviceId() });
+  if (res.needGeo) {
+    renderLoading('กำลังตรวจตำแหน่ง… ถ้ามีหน้าต่างถาม กรุณากด "อนุญาต" (Allow)');
+    const pos = await getPosition();
+    res = await api('checkin', Object.assign({ pre: res.pre, deviceId: deviceId() }, pos || { lat: null, lng: null }));
+  }
   if (!res.ok) {
     return renderMessage(res.message || 'ตรวจสอบ QR ไม่สำเร็จ', res.closed ? 'error' : 'warning');
   }
@@ -710,6 +726,32 @@ function renderAdmin(st) {
         <div><button class="btn btn-ghost" id="btnSave" style="width:100%">💾 บันทึก</button></div>
       </div>
       <div class="muted" id="chGroups" style="margin-top:8px"></div>
+      <div class="row2" style="margin-top:12px">
+        <div>
+          <div class="field-label">QR เปลี่ยนทุก</div>
+          <select id="slotSel">${[10, 15, 30, 60].map(s => `<option value="${s}" ${s === st.slotSeconds ? 'selected' : ''}>${s} วินาที (แคปส่งเพื่อนได้ไม่เกิน ~${s * 2} วิ)</option>`).join('')}</select>
+        </div>
+        <div>
+          <div class="field-label">ตรวจตำแหน่งนักศึกษา</div>
+          <select id="geoSel">
+            <option value="off" ${st.geoMode === 'off' ? 'selected' : ''}>ปิด</option>
+            <option value="warn" ${st.geoMode === 'warn' ? 'selected' : ''}>เตือน — ให้เข้าได้ แต่ติดธงในตาราง</option>
+            <option value="block" ${st.geoMode === 'block' ? 'selected' : ''}>บล็อก — อยู่นอกห้องเข้าไม่ได้</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2" id="geoBox" style="margin-top:12px">
+        <div style="flex:2">
+          <div class="field-label">พิกัดห้องเรียน (คลิกขวาที่ตึกใน Google Maps แล้วคัดลอกมาวาง)</div>
+          <input id="roomIn" placeholder="เช่น 14.98712, 102.11923" value="${st.roomLat !== null && st.roomLng !== null ? st.roomLat + ', ' + st.roomLng : ''}">
+        </div>
+        <div style="flex:0 0 120px;min-width:100px">
+          <div class="field-label">รัศมี (เมตร)</div>
+          <input id="radIn" type="number" min="30" max="2000" value="${st.radius}">
+        </div>
+        <div style="flex:0 0 auto;min-width:0"><button class="btn btn-ghost" id="btnHere" type="button">📍 ใช้ตำแหน่งเครื่องนี้</button></div>
+      </div>
+      <div class="muted" id="geoHint" style="margin-top:6px"></div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px" class="muted">
         <label><input type="checkbox" id="shQ" style="width:auto" ${st.shuffleQ ? 'checked' : ''}> สุ่มลำดับข้อ</label>
         <label><input type="checkbox" id="shC" style="width:auto" ${st.shuffleC ? 'checked' : ''}> สุ่มลำดับตัวเลือก (อย่าเปิดถ้ามีตัวเลือก "ถูกทุกข้อ")</label>
@@ -721,7 +763,7 @@ function renderAdmin(st) {
     </div>
 
     <div class="card">
-      <div class="card-title">QR Code สำหรับนักศึกษา (เปลี่ยนทุก ${st.slotSeconds} วินาที)</div>
+      <div class="card-title">QR Code สำหรับนักศึกษา (เปลี่ยนทุก <span id="slotTitle">${st.slotSeconds}</span> วินาที)</div>
       <div class="qr-wrap">
         <div>
           <div class="qr-box" id="qrBox" title="คลิกเพื่อขยาย"><div id="qrSmall"></div><div class="qr-closed">ปิดรับเข้าสอบ</div></div>
@@ -729,11 +771,11 @@ function renderAdmin(st) {
           <div class="muted center" style="margin-top:4px">QR เปลี่ยนใน <span id="slotSec">—</span> วิ</div>
         </div>
         <div class="qr-info">
-          <div class="field-label">ลิงก์ปัจจุบัน (ใช้ได้ไม่เกิน 60 วินาที)</div>
+          <div class="field-label">ลิงก์ปัจจุบัน (ใช้ได้ไม่เกิน ~<span id="slotLife">${st.slotSeconds * 2}</span> วินาที)</div>
           <div class="qr-url"><a id="qrLink" href="#" target="_blank">กำลังสร้าง…</a></div>
           <ul class="muted" style="padding-left:18px;line-height:2;margin-top:10px">
             <li>ให้นักศึกษาสแกนด้วยแอปกล้อง (เปิดใน Chrome/Safari)</li>
-            <li>แคป QR ส่งเพื่อนจะหมดอายุภายใน 1 นาที</li>
+            <li>แคป QR ส่งเพื่อนจะหมดอายุเร็ว · เปิดตรวจตำแหน่งเพื่อกันคนนอกห้อง</li>
             <li>เข้าครบแล้วกด "ปิดรับเข้าสอบ" เพื่อกันคนนอก</li>
           </ul>
           <button class="btn btn-primary" id="btnFull" style="width:100%;margin-top:10px">⛶ แสดง QR เต็มจอ</button>
@@ -778,12 +820,37 @@ function renderAdmin(st) {
   $('chSel').addEventListener('change', showGroups);
   showGroups();
 
+  const parseLatLng = s => {
+    const m = String(s || '').match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
+    return m ? { lat: Number(m[1]), lng: Number(m[2]) } : null;
+  };
+  const geoHint = () => {
+    const mode = $('geoSel').value, p = parseLatLng($('roomIn').value);
+    $('geoBox').style.opacity = mode === 'off' ? .5 : 1;
+    $('geoHint').innerHTML = mode === 'off' ? 'ปิดอยู่ — ไม่ขอตำแหน่งจากนักศึกษา'
+      : !p ? '<span style="color:var(--danger)">ยังไม่ได้ใส่พิกัดห้องเรียน ระบบจะยังไม่ตรวจตำแหน่ง</span>'
+      : `ตรวจในรัศมี ${esc($('radIn').value)} ม. จาก <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" style="color:var(--accent)">${p.lat}, ${p.lng} (ดูบนแผนที่)</a>`;
+  };
+  ['geoSel', 'roomIn', 'radIn'].forEach(id => $(id).addEventListener('input', geoHint));
+  $('geoSel').addEventListener('change', geoHint);
+  geoHint();
+  $('btnHere').onclick = async () => {
+    $('btnHere').disabled = true; $('btnHere').textContent = 'กำลังหาตำแหน่ง…';
+    const p = await getPosition();
+    $('btnHere').disabled = false; $('btnHere').textContent = '📍 ใช้ตำแหน่งเครื่องนี้';
+    if (!p) return toast('หาตำแหน่งไม่ได้ — ลองคัดลอกพิกัดจาก Google Maps แทน', 'error');
+    $('roomIn').value = p.lat.toFixed(6) + ', ' + p.lng.toFixed(6);
+    geoHint();
+    toast(`ได้ตำแหน่งแล้ว (คลาดเคลื่อน ~${p.acc} ม.) อย่าลืมกดบันทึก`, p.acc > 100 ? 'warning' : 'success');
+  };
+
   $('btnSave').onclick = async () => {
     $('btnSave').disabled = true;
-    const res = await api('admin.update', {
+    const res = await api('admin.update', Object.assign({
       pin: A.pin, chapter: Number($('chSel').value), durationMin: Number($('durIn').value),
       shuffleQ: $('shQ').checked, shuffleC: $('shC').checked,
-    });
+      slotSeconds: Number($('slotSel').value), geoMode: $('geoSel').value, radius: Number($('radIn').value),
+    }, (() => { const p = parseLatLng($('roomIn').value); return p ? { roomLat: p.lat, roomLng: p.lng } : {}; })()));
     $('btnSave').disabled = false;
     if (!res.ok) return toast(res.message, 'error');
     applyState(res);
@@ -844,6 +911,8 @@ async function refreshQR() {
   drawQR($('qrBig'), url, 520);
   $('qrLink').textContent = url; $('qrLink').href = url;
 
+  if (res.slotSeconds && res.slotSeconds !== A.st.slotSeconds) A.st.slotSeconds = res.slotSeconds;
+  $('slotTitle').textContent = A.st.slotSeconds; $('slotLife').textContent = A.st.slotSeconds * 2;
   const total = A.st.slotSeconds * 1000, end = Date.now() + res.expiresInMs;
   clearInterval(A.slotTimer);
   const upd = () => {
@@ -882,7 +951,7 @@ function renderStatus() {
     if (r.status === 'none') c.none++;
     else if (r.status === 'active') c.active++;
     else c.done++;
-    if (r.tabs >= 3 || r.blocked) c.flag++;
+    if (r.tabs >= 3 || r.blocked || /^far:/.test(r.geo || '') || r.geo === 'none') c.flag++;
   });
   $('stats').innerHTML = `
     <div class="stat"><b>${c.none}</b><span>ยังไม่เข้า</span></div>
@@ -902,7 +971,10 @@ function renderStatus() {
     if (r.lateSec) notes.push(`ช้า ${r.lateSec} วิ`);
     if (r.status === 'active' && !r.deviceBound) notes.push('รอสแกนจากเครื่องใหม่');
     if (r.released) notes.push('ปล่อยเครื่องให้คนอื่นแล้ว');
-    const flag = r.tabs >= 3 || r.blocked;
+    const geoFar = /^far:/.test(r.geo || ''), geoNone = r.geo === 'none';
+    if (geoFar) notes.push(`📍 นอกห้อง ~${r.geo.split(':')[1]} ม.`);
+    if (geoNone) notes.push('📍 ไม่ให้ตำแหน่ง');
+    const flag = r.tabs >= 3 || r.blocked || geoFar || geoNone;
     return `<tr class="${flag ? 'flag' : ''}">
       <td class="muted">${r.no}</td>
       <td>${esc(r.name)}<div class="muted">${esc(r.dept)}</div></td>
