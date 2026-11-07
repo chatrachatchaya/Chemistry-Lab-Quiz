@@ -901,6 +901,7 @@ function renderStatus() {
     if (r.blocked) notes.push(`มีเครื่อง/ชื่ออื่นพยายามเข้า ${r.blocked} ครั้ง`);
     if (r.lateSec) notes.push(`ช้า ${r.lateSec} วิ`);
     if (r.status === 'active' && !r.deviceBound) notes.push('รอสแกนจากเครื่องใหม่');
+    if (r.released) notes.push('ปล่อยเครื่องให้คนอื่นแล้ว');
     const flag = r.tabs >= 3 || r.blocked;
     return `<tr class="${flag ? 'flag' : ''}">
       <td class="muted">${r.no}</td>
@@ -910,7 +911,7 @@ function renderStatus() {
       <td>${info}</td>
       <td>${r.tabs ? `<span class="badge ${r.tabs >= 3 ? 'badge-red' : 'badge-amber'}">${r.tabs} ครั้ง</span>` : (r.status === 'none' ? '' : '0')}</td>
       <td class="muted">${esc(notes.join(' · '))}</td>
-      <td style="white-space:nowrap">${r.status === 'active' && r.deviceBound ? `<button class="btn btn-ghost btn-sm" data-unbind="${esc(r.id)}" data-name="${esc(r.name)}">ย้ายเครื่อง</button> ` : ''}${r.status !== 'none' ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" data-reset="${esc(r.id)}" data-name="${esc(r.name)}" data-dept="${esc(r.dept)}">รีเซ็ต</button>` : ''}</td>
+      <td style="white-space:nowrap">${r.status === 'active' && r.deviceBound ? `<button class="btn btn-ghost btn-sm" data-unbind="${esc(r.id)}" data-name="${esc(r.name)}">ย้ายเครื่อง</button> ` : ''}${['submitted', 'auto', 'late'].includes(r.status) && !r.released ? `<button class="btn btn-ghost btn-sm" data-release="${esc(r.id)}" data-name="${esc(r.name)}" title="ให้เพื่อนยืมเครื่องนี้สอบบทเดียวกันได้">ปล่อยเครื่อง</button> ` : ''}${r.status !== 'none' ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" data-reset="${esc(r.id)}" data-name="${esc(r.name)}" data-dept="${esc(r.dept)}">รีเซ็ต</button>` : ''}</td>
     </tr>`;
   }).join('') : `<tr><td colspan="8" class="muted">ไม่มีรายชื่อ</td></tr>`;
 
@@ -919,6 +920,14 @@ function renderStatus() {
       if (!(await confirmBox(`ย้ายเครื่องให้ ${b.dataset.name}? นักศึกษาต้องสแกน QR ใหม่จากเครื่องใหม่ เวลาสอบเดินต่อจากเดิม`, 'ย้ายเครื่อง'))) return;
       const res = await api('admin.unbind', { pin: A.pin, studentId: b.dataset.unbind });
       toast(res.ok ? 'ปลดเครื่องแล้ว ให้นักศึกษาสแกน QR ใหม่' : res.message, res.ok ? 'success' : 'error', 4000);
+      refreshStatus();
+    };
+  });
+  $('tbody').querySelectorAll('[data-release]').forEach(b => {
+    b.onclick = async () => {
+      if (!(await confirmBox(`ปล่อยเครื่องของ ${b.dataset.name}? เพื่อนจะยืมเครื่องนี้สอบบทที่ ${A.st.chapter} ได้ 1 คน (คะแนนของ ${b.dataset.name} ยังอยู่ครบ)`, 'ปล่อยเครื่อง'))) return;
+      const res = await api('admin.release', { pin: A.pin, studentId: b.dataset.release });
+      toast(res.ok ? 'ปล่อยเครื่องแล้ว ให้เพื่อนสแกน QR ใหม่จากเครื่องนี้' : res.message, res.ok ? 'success' : 'error', 4000);
       refreshStatus();
     };
   });
