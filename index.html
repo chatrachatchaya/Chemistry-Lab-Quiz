@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>แบบทดสอบก่อนเรียนวิชาปฏิบัติการเคมีพื้นฐาน</title>
+  <title>แบบทดสอบออนไลน์</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -12,7 +12,7 @@
      *  หลายวิชา → เพิ่มบรรทัด แล้วเปิดหน้าผู้สอนด้วย ?admin&s=ชื่อย่อ
      * ===================================================== */
     const API_URLS = {
-      default: 'https://script.google.com/macros/library/d/1P5R1PFiC8wx0kz9_nipVs26W0_Z223MQhlt96l_icc7T2hWuwQd6aK7l/2',
+      default: 'https://script.google.com/macros/s/AKfycbyXKZgPodzPPj2moGahHiDB60ffbEOAOJaYJkxE6LalHiujzYHtY5Rtfrj4CSwOfhb44w/exec',
       // chem2: 'https://script.google.com/macros/s/xxxxxxxx/exec',
     };
     const FOOTER_TEXT = '© 2025 Chatratchachaya, Ch. Ph.D. · Applied Chemistry · RMUTI';
@@ -198,15 +198,25 @@ function deviceId() {
 // เรียก API (POST แบบ text/plain → ไม่มี CORS preflight) + ลองใหม่อัตโนมัติเมื่อเน็ตหลุด/ระบบยุ่ง
 async function api(action, data = {}, retries = 3) {
   for (let i = 0; ; i++) {
+    let text = '';
     try {
       const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action }, data)) });
-      const j = await res.json();
-      if (j && j.busy && i < retries) { await sleep(1000 * 2 ** i + Math.random() * 1000); continue; }
-      return j;
+      text = await res.text();
     } catch (e) {
-      if (i >= retries) return { ok: false, network: true, message: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ต' };
+      if (!navigator.onLine) return { ok: false, network: true, message: 'ไม่มีอินเทอร์เน็ต กรุณาตรวจสอบการเชื่อมต่อ' };
+      if (i >= retries) return { ok: false, network: true, message: 'เรียก Apps Script ไม่สำเร็จ — ตรวจว่า Deploy แบบ Who has access: Anyone และ URL ใน API_URLS ลงท้าย /exec' };
       await sleep(800 * 2 ** i + Math.random() * 500);
+      continue;
     }
+    let j;
+    try { j = JSON.parse(text); } catch (e) {
+      const hint = /doPost/i.test(text) ? 'Apps Script ยังเป็นโค้ดเก่า (ไม่มี doPost) — วาง Code.gs ใหม่ แล้ว Deploy เป็น New version'
+        : /sign ?in|accounts\.google|ลงชื่อเข้าใช้/i.test(text) ? 'Apps Script ต้องล็อกอิน — ตั้ง Who has access เป็น Anyone'
+        : 'Apps Script ตอบกลับไม่ใช่ข้อมูลของระบบ — ตรวจว่า Deploy โค้ดใหม่แล้ว';
+      return { ok: false, network: true, message: hint };
+    }
+    if (j && j.busy && i < retries) { await sleep(1000 * 2 ** i + Math.random() * 1000); continue; }
+    return j;
   }
 }
 
