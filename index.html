@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>แบบทดสอบออนไลน์</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    /* =====================================================
+     *  ตั้งค่า: วาง URL ของ Web App (ลงท้าย /exec) ที่ได้จาก Deploy
+     *  หลายวิชา → เพิ่มบรรทัด แล้วเปิดหน้าผู้สอนด้วย ?admin&s=ชื่อย่อ
+     * ===================================================== */
+    const API_URLS = {
+      default: 'https://script.google.com/macros/library/d/1P5R1PFiC8wx0kz9_nipVs26W0_Z223MQhlt96l_icc7T2hWuwQd6aK7l/2',
+      // chem2: 'https://script.google.com/macros/s/xxxxxxxx/exec',
+    };
+    const FOOTER_TEXT = '© 2025 Chatratchachaya, Ch. Ph.D. · Applied Chemistry · RMUTI';
+  </script>
+  <style>
+    :root {
+      --bg:#edf3f0; --surface:#ffffff; --surface2:#f3f7f5; --border:#d8e3de;
+      --accent:#1f5546; --accent2:#2f6b5a; --tint:#e3eee9; --tint2:#d3e5dc;
+      --success:#2f8a5f; --warning:#c98a1b; --danger:#c2453d;
+      --text:#173a31; --muted:#6b7d76; --radius:16px;
+      --shadow:0 1px 2px rgba(23,58,49,.04);
+      --shadow-lg:0 6px 24px rgba(23,58,49,.10);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{background:var(--bg);color:var(--text);font-family:'Anuphan','Inter',system-ui,sans-serif;font-size:15px;line-height:1.6}
+    .page{max-width:900px;margin:0 auto;padding:24px 16px 60px}
+    .app-header{display:flex;align-items:center;gap:14px;padding:4px 0 22px;border-bottom:1px solid var(--border);margin-bottom:28px}
+    .app-header .icon{width:44px;height:44px;border-radius:12px;background:var(--tint);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .app-header h1{font-size:22px;font-weight:600;line-height:1.3;color:var(--accent);letter-spacing:-.2px}
+    .course-code{display:inline-block;font-size:12px;font-weight:600;color:var(--accent);background:var(--tint);border-radius:999px;padding:2px 10px;margin-bottom:4px;font-family:'Inter','Anuphan',sans-serif;letter-spacing:.3px}
+    .app-header p{font-size:13px;color:var(--muted);margin-top:2px}
+    .card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:16px;border:1px solid var(--border)}
+    .card-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .card-title::before{content:'';width:4px;height:16px;background:var(--accent2);border-radius:2px;display:block}
+    select,input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);font-family:inherit;font-size:15px;color:var(--text);outline:none;transition:border-color .15s}
+    select:focus,input:focus{border-color:var(--accent2);background:#fff;box-shadow:0 0 0 3px var(--tint)}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;transition:all .15s}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:hover{background:#174538}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+    .btn-ghost{background:#fff;color:var(--text);border:1.5px solid var(--border)}
+    .btn-ghost:hover{background:var(--tint)}
+    .btn-danger{background:var(--danger);color:#fff}
+    .btn-success{background:var(--success);color:#fff}
+    .btn-sm{padding:6px 12px;font-size:13px}
+    .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+    .badge-blue{background:var(--tint);color:var(--accent)}.badge-green{background:#f0fdf4;color:#15803d}
+    .badge-red{background:#fff1f2;color:#be123c}.badge-amber{background:#fffbeb;color:#b45309}.badge-gray{background:var(--surface2);color:var(--muted)}
+    .alert{padding:12px 16px;border-radius:10px;font-weight:500;font-size:14px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .alert-success{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
+    .alert-error{background:#fff1f2;border:1px solid #fecdd3;color:#be123c}
+    .alert-warning{background:#fffbeb;border:1px solid #fde68a;color:#b45309}
+    .alert-info{background:var(--tint);border:1px solid var(--tint2);color:var(--accent)}
+    .field-label{font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:500}
+    .row2{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+    .row2>*{flex:1;min-width:150px}
+    .muted{color:var(--muted);font-size:13px}
+    .center{text-align:center}
+
+    /* steps */
+    .steps{display:flex;margin-bottom:24px}
+    .step{flex:1;text-align:center;padding:10px 6px;font-size:13px;color:var(--muted);border-bottom:2px solid var(--border);font-weight:500}
+    .step.active{color:var(--accent);border-color:var(--accent);font-weight:700}
+    .step.done{color:var(--success);border-color:var(--success)}
+
+    /* timer */
+    .timer-block{position:sticky;top:8px;z-index:50;display:flex;align-items:center;gap:14px;padding:12px 18px;background:var(--tint);border:1.5px solid var(--tint2);border-radius:12px;margin-bottom:16px;box-shadow:var(--shadow)}
+    .timer-block.warning{background:#fffbeb;border-color:#fde68a}
+    .timer-block.danger{background:#fff1f2;border-color:#fecdd3}
+    .timer-digits{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:1px;font-family:'Inter',monospace;line-height:1.1}
+    .timer-digits.warning{color:var(--warning)}
+    .timer-digits.danger{color:var(--danger);animation:pulse .8s infinite}
+    .timer-label{font-size:12px;color:var(--muted)}
+    .timer-bar-wrap{height:6px;background:var(--border);border-radius:999px;overflow:hidden}
+    .timer-bar{height:100%;border-radius:999px;background:var(--accent);transition:width .5s linear}
+    .timer-bar.warning{background:var(--warning)}
+    .timer-bar.danger{background:var(--danger)}
+
+    /* questions */
+    .no-copy{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+    .q-item{border:1.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px}
+    .q-item.answered{border-color:var(--accent)}
+    .q-num{font-size:12px;font-weight:600;color:var(--accent);letter-spacing:.5px;margin-bottom:6px}
+    .q-text{font-weight:500;margin-bottom:12px;line-height:1.5;white-space:pre-line}
+    .q-img{max-width:100%;border-radius:8px;margin-bottom:12px}
+    .opt label{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:9px;background:var(--surface2);margin:6px 0;cursor:pointer;border:1.5px solid transparent}
+    .opt label:has(input:checked){background:var(--tint);border-color:var(--accent2)}
+    .opt input[type=radio]{accent-color:var(--accent);width:16px;height:16px;flex-shrink:0}
+    .opt-key{font-weight:700;color:var(--accent);min-width:18px}
+    .score-big{font-size:44px;font-weight:800;color:var(--accent);font-family:'Inter',sans-serif;line-height:1}
+
+    /* QR */
+    .qr-wrap{display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap}
+    .qr-box{width:200px;height:200px;flex-shrink:0;background:#fff;border-radius:12px;box-shadow:var(--shadow-lg);padding:8px;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}
+    .qr-closed{position:absolute;inset:0;background:rgba(255,255,255,.93);border-radius:12px;display:none;align-items:center;justify-content:center;text-align:center;font-weight:700;color:var(--danger);padding:10px}
+    .is-closed .qr-closed{display:flex}
+    .qr-info{flex:1;min-width:200px}
+    .qr-url{font-size:12px;word-break:break-all;color:var(--muted);margin-top:4px}
+    .qr-url a{color:var(--accent)}
+    .slot-bar-wrap{margin-top:10px;height:4px;background:var(--border);border-radius:999px;overflow:hidden}
+    .slot-bar{height:100%;background:var(--accent);transition:width .3s linear}
+    .modal-backdrop{display:none;position:fixed;inset:0;z-index:1000;background:rgba(10,15,30,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px}
+    .modal-backdrop.open{display:flex}
+    .modal{background:var(--surface);border-radius:24px;box-shadow:0 24px 64px rgba(0,0,0,.25);padding:28px;width:min(640px,100%);max-height:100%;overflow:auto;text-align:center;position:relative}
+    .modal-qr{display:inline-flex;background:#fff;border-radius:18px;padding:14px;box-shadow:0 0 0 1px var(--border);margin:16px 0;position:relative}
+    .modal-qr img,.modal-qr canvas{width:min(62vh,80vw)!important;height:auto!important;max-width:520px}
+    .big-sec{font-size:28px;font-weight:700;color:var(--accent);font-family:'Inter',monospace}
+
+    /* dashboard */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+    .stat{background:var(--surface2);border-radius:10px;padding:10px;text-align:center}
+    .stat b{display:block;font-size:22px;font-family:'Inter',sans-serif}
+    .stat span{font-size:12px;color:var(--muted)}
+    .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+    table{width:100%;border-collapse:collapse;font-size:14px;min-width:620px}
+    th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
+    th{background:var(--surface2);font-size:12px;color:var(--muted);font-weight:600}
+    tr.flag td{background:#fff7ed}
+
+    /* toast */
+    #toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:2000;max-width:min(560px,calc(100% - 32px));width:max-content}
+    #toast .alert{box-shadow:var(--shadow-lg);font-size:15px;font-weight:600}
+    .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;padding-top:20px;border-top:1px solid var(--border)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    @media (max-width:540px){
+      .card{padding:18px}
+      .qr-box{width:160px;height:160px}
+      .timer-digits{font-size:22px}
+      .stats{grid-template-columns:repeat(2,1fr)}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="app-header">
+    <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="m9 13 2 2 4-4"/></svg></div>
+    <div>
+      <div id="hCode" class="course-code" style="display:none"></div>
+      <h1 id="hTitle">แบบทดสอบออนไลน์</h1>
+      <p id="hSub"></p>
+    </div>
+  </div>
+  <div id="app"></div>
+  <div class="footer" id="footer"></div>
+</div>
+<div id="toast"></div>
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal" style="width:min(420px,100%)">
+    <div id="confirmText" style="font-weight:600;margin-bottom:18px"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" id="confirmNo" style="flex:1">ยกเลิก</button>
+      <button class="btn btn-primary" id="confirmYes" style="flex:1">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== พื้นฐาน ===================== */
+const P = new URLSearchParams(location.search);
+const SUBJECT = P.get('s') || 'default';
+const API_URL = API_URLS[SUBJECT] || API_URLS.default;
+const root = document.getElementById('app');
+document.getElementById('footer').textContent = FOOTER_TEXT;
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+
+function makeStore(area) {
+  const k = key => `quiz:${SUBJECT}:${key}`;
+  return {
+    get(key) { try { return JSON.parse(area().getItem(k(key))); } catch (e) { return null; } },
+    set(key, v) { try { area().setItem(k(key), JSON.stringify(v)); } catch (e) {} },
+    del(key) { try { area().removeItem(k(key)); } catch (e) {} },
+  };
+}
+const store = makeStore(() => localStorage);
+const sstore = makeStore(() => sessionStorage);
+
+let _memDevice = null;
+function deviceId() {
+  let d = null;
+  try { d = localStorage.getItem('quiz:device'); } catch (e) {}
+  if (!d) d = _memDevice;
+  if (!d) {
+    d = (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(16) + Math.random().toString(16).slice(2)).replace(/-/g, '');
+    try { localStorage.setItem('quiz:device', d); } catch (e) {}
+    _memDevice = d;
+  }
+  return d;
+}
+
+// เรียก API (POST แบบ text/plain → ไม่มี CORS preflight) + ลองใหม่อัตโนมัติเมื่อเน็ตหลุด/ระบบยุ่ง
+async function api(action, data = {}, retries = 3) {
+  for (let i = 0; ; i++) {
+    try {
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action }, data)) });
+      const j = await res.json();
+      if (j && j.busy && i < retries) { await sleep(1000 * 2 ** i + Math.random() * 1000); continue; }
+      return j;
+    } catch (e) {
+      if (i >= retries) return { ok: false, network: true, message: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ต' };
+      await sleep(800 * 2 ** i + Math.random() * 500);
+    }
+  }
+}
+
+function setHeader(title, sub, code) {
+  if (title) { $('hTitle').textContent = title; document.title = (code ? code + ' ' : '') + title; }
+  if (sub !== undefined) $('hSub').textContent = sub || '';
+  if (code !== undefined) { $('hCode').textContent = code ? 'รหัสวิชา ' + code : ''; $('hCode').style.display = code ? '' : 'none'; }
+}
+
+let toastTimer = null;
+function toast(msg, kind = 'info', ms = 6000) {
+  $('toast').innerHTML = `<div class="alert alert-${kind}">${esc(msg)}</div>`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => ($('toast').innerHTML = ''), ms);
+}
+
+function confirmBox(text, yesLabel = 'ยืนยัน') {
+  return new Promise(resolve => {
+    $('confirmText').textContent = text;
+    $('confirmYes').textContent = yesLabel;
+    $('confirmModal').classList.add('open');
+    const done = v => { $('confirmModal').classList.remove('open'); resolve(v); };
+    $('confirmYes').onclick = () => done(true);
+    $('confirmNo').onclick = () => done(false);
+  });
+}
+
+function renderMessage(msg, kind = 'warning', extraHtml = '') {
+  root.innerHTML = `<div class="card"><div class="alert alert-${kind}">${esc(msg)}</div>${extraHtml}</div>`;
+}
+
+function renderLoading(msg) {
+  root.innerHTML = `<div class="card center muted">⏳ ${esc(msg || 'กำลังโหลด…')}</div>`;
+}
+
+/* ===================== BOOT ===================== */
+async function boot() {
+  if (!API_URL || API_URL.includes('วาง_DEPLOYMENT_ID')) {
+    return renderMessage('ยังไม่ได้ตั้งค่า API_URLS ในไฟล์ index.html (วาง URL ของ Web App ที่ลงท้ายด้วย /exec)', 'error');
+  }
+  if (P.has('admin')) return adminBoot();
+
+  const t = P.get('t');
+  if (t) history.replaceState(null, '', location.pathname + (SUBJECT !== 'default' ? '?s=' + encodeURIComponent(SUBJECT) : ''));
+
+  const active = store.get('active');
+  if (active && active.sessionId) return studentResume(active.sessionId, t);
+  if (t) return studentCheckin(t);
+
+  const tk = sstore.get('ticket');
+  if (tk && tk.exp > Date.now()) { setHeader(tk.title, tk.subtitle, tk.courseCode); return renderPick(tk); }
+
+  api('info', {}, 1).then(r => r && r.ok && setHeader(r.title, r.subtitle, r.courseCode));
+  renderMessage('กรุณาสแกน QR Code จากหน้าจอผู้สอนเพื่อเข้าทำแบบทดสอบ', 'info');
+}
+
+/* ===================== STUDENT ===================== */
+async function studentCheckin(t) {
+  renderLoading('กำลังตรวจสอบ QR…');
+  const res = await api('checkin', { t, deviceId: deviceId() });
+  if (!res.ok) {
+    return renderMessage(res.message || 'ตรวจสอบ QR ไม่สำเร็จ', res.closed ? 'error' : 'warning');
+  }
+  const tk = {
+    ticket: res.ticket,
+    exp: Date.now() + (res.ticketSeconds - 30) * 1000,
+    chapter: res.chapter,
+    departments: res.departments,
+    title: res.title, subtitle: res.subtitle, courseCode: res.courseCode,
+  };
+  sstore.set('ticket', tk);
+  setHeader(res.title, res.subtitle, res.courseCode);
+  renderPick(tk);
+}
+
+function renderPick(tk) {
+  root.innerHTML = `
+    <div class="steps">
+      <div class="step active" id="stp1">1 · เลือกสาขา</div>
+      <div class="step" id="stp2">2 · เลือกชื่อ</div>
+      <div class="step" id="stp3">3 · ทำแบบทดสอบ</div>
+    </div>
+    <div class="card">
+      <div class="card-title">แบบทดสอบบทที่ ${esc(tk.chapter)}</div>
+      <div id="pickMsg"></div>
+      <div class="field-label">สาขา / กลุ่มเรียน</div>
+      <select id="deptSel">
+        <option value="">— เลือกสาขา —</option>
+        ${(tk.departments || []).map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('')}
+      </select>
+      <div id="stuWrap" style="display:none;margin-top:16px">
+        <div class="field-label">ชื่อนักศึกษา</div>
+        <select id="stuSel"><option value="">— เลือกชื่อ —</option></select>
+        <div class="muted" id="sidHint" style="margin-top:6px"></div>
+        <button class="btn btn-primary" id="btnStart" style="width:100%;margin-top:16px" disabled>เริ่มทำแบบทดสอบ →</button>
+        <div class="muted center" style="margin-top:8px">เมื่อกดเริ่ม เวลาจะเริ่มนับทันที และใช้ได้เฉพาะเครื่องนี้</div>
+      </div>
+    </div>`;
+
+  let students = [];
+  const msg = (text, kind = 'warning') => ($('pickMsg').innerHTML = text ? `<div class="alert alert-${kind}">${esc(text)}</div>` : '');
+
+  $('deptSel').onchange = async e => {
+    const dept = e.target.value;
+    $('stuWrap').style.display = 'none';
+    msg('');
+    if (!dept) return;
+    $('stp1').className = 'step done'; $('stp2').className = 'step active';
+    const res = await api('students', { ticket: tk.ticket, deviceId: deviceId(), department: dept });
+    if (!res.ok) { if (res.expired) sstore.del('ticket'); return msg(res.message); }
+    students = res.students;
+    $('stuSel').innerHTML = `<option value="">— เลือกชื่อ —</option>` +
+      students.map((s, i) => `<option value="${i}">${esc(s.name)}</option>`).join('');
+    $('sidHint').textContent = '';
+    $('btnStart').disabled = true;
+    $('stuWrap').style.display = '';
+  };
+
+  $('stuSel').onchange = e => {
+    const s = students[e.target.value];
+    $('sidHint').textContent = s ? `รหัสนักศึกษา: ${s.id}` : '';
+    $('btnStart').disabled = !s;
+  };
+
+  $('btnStart').onclick = async () => {
+    const s = students[$('stuSel').value];
+    if (!s) return;
+    const ok = await confirmBox(`ยืนยันว่าคุณคือ ${s.name} (${s.id}) ?`, 'ใช่ เริ่มทำ');
+    if (!ok) return;
+    $('btnStart').disabled = true;
+    $('btnStart').textContent = 'กำลังเริ่ม…';
+    unlockAudio();
+    const res = await api('start', { ticket: tk.ticket, deviceId: deviceId(), department: $('deptSel').value, studentId: s.id }, 5);
+    if (!res.ok) {
+      $('btnStart').disabled = false;
+      $('btnStart').textContent = 'เริ่มทำแบบทดสอบ →';
+      if (res.expired) sstore.del('ticket');
+      return msg(res.message, res.blocked ? 'error' : 'warning');
+    }
+    sstore.del('ticket');
+    beginQuiz(res);
+  };
+}
+
+async function studentResume(sessionId, tokenIfAny) {
+  renderLoading('กำลังโหลดแบบทดสอบที่ทำค้างไว้…');
+  const res = await api('resume', { sessionId, deviceId: deviceId() }, 4);
+  if (res.ok) return beginQuiz(res);
+  if (res.network) {
+    return renderMessage(res.message, 'error', `<button class="btn btn-primary" onclick="location.reload()">ลองใหม่</button>`);
+  }
+  clearSession(sessionId);
+  if (res.submitted) return renderResult(res, { already: true });
+  if (tokenIfAny) return studentCheckin(tokenIfAny);
+  renderMessage(res.message || 'ไม่พบรอบสอบ', 'warning');
+}
+
+function clearSession(sid) {
+  store.del('active'); store.del('ans:' + sid); store.del('tabs:' + sid);
+}
+
+/* ----- ทำข้อสอบ ----- */
+const Q = { s: null, answers: {}, tabs: 0, offset: 0, timer: null, submitting: false, done: false, warned: {} };
+
+function beginQuiz(s) {
+  Q.s = s;
+  Q.answers = store.get('ans:' + s.sessionId) || {};
+  Q.tabs = store.get('tabs:' + s.sessionId) || 0;
+  Q.offset = s.serverNow - Date.now();
+  Q.submitting = false; Q.done = false; Q.warned = {};
+  store.set('active', { sessionId: s.sessionId });
+  setHeader(s.title, s.subtitle, s.courseCode);
+
+  const keysLabel = ['A', 'B', 'C', 'D', 'E'];
+  root.innerHTML = `
+    <div class="timer-block" id="timerBlock">
+      <div>
+        <div class="timer-digits" id="timerDigits">--:--</div>
+        <div class="timer-label">เวลาที่เหลือ</div>
+      </div>
+      <div style="flex:1">
+        <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
+        <div class="timer-label" id="progressLbl" style="margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">แบบทดสอบบทที่ ${esc(s.chapter)}</div>
+      <div class="muted" style="margin-bottom:14px">👤 ${esc(s.studentName)} · ${esc(s.studentId)} · ${esc(s.department)}</div>
+      <div id="tabWarn"></div>
+      <div id="qList" class="no-copy">
+        ${s.questions.map((q, i) => `
+          <div class="q-item" id="qi${i}">
+            <div class="q-num">ข้อที่ ${i + 1}</div>
+            <div class="q-text">${esc(q.q)}</div>
+            ${q.img ? `<img class="q-img" src="${esc(q.img)}" alt="">` : ''}
+            ${q.opts.map((o, j) => `
+              <div class="opt"><label>
+                <input type="radio" name="q_${esc(q.no)}" value="${esc(o.k)}" data-i="${i}" ${Q.answers[q.no] === o.k ? 'checked' : ''}>
+                <span class="opt-key">${keysLabel[j]}</span><span>${esc(o.t)}</span>
+              </label></div>`).join('')}
+          </div>`).join('')}
+      </div>
+      <div id="submitMsg"></div>
+      <button class="btn btn-primary" id="btnSubmit" style="width:100%;padding:14px">✓ ส่งคำตอบ</button>
+    </div>`;
+
+  $('qList').addEventListener('contextmenu', e => e.preventDefault());
+  $('qList').addEventListener('change', e => {
+    const el = e.target;
+    if (el.type !== 'radio' || Q.done) return;
+    Q.answers[el.name.slice(2)] = el.value;
+    store.set('ans:' + s.sessionId, Q.answers);
+    updateProgress();
+  });
+  $('btnSubmit').onclick = async () => {
+    const left = s.questions.filter(q => !Q.answers[q.no]).length;
+    const ok = await confirmBox(left ? `ยังไม่ได้ตอบ ${left} ข้อ ต้องการส่งเลยหรือไม่?` : 'ยืนยันส่งคำตอบ? ส่งแล้วแก้ไขไม่ได้', 'ส่งคำตอบ');
+    if (ok) submitQuiz(false);
+  };
+
+  updateProgress();
+  renderTabWarn();
+  clearInterval(Q.timer);
+  Q.timer = setInterval(tick, 500);
+  tick();
+}
+
+function updateProgress() {
+  const qs = Q.s.questions;
+  const n = qs.filter(q => Q.answers[q.no]).length;
+  $('progressLbl').textContent = `ตอบแล้ว ${n}/${qs.length} ข้อ`;
+  qs.forEach((q, i) => $('qi' + i).classList.toggle('answered', !!Q.answers[q.no]));
+}
+
+function remainingSec() {
+  return Math.max(0, Math.ceil((Q.s.deadline - (Date.now() + Q.offset)) / 1000));
+}
+
+function tick() {
+  if (!Q.s || Q.done) return;
+  const total = Q.s.durationSec || 1;
+  const remain = remainingSec();
+  const m = Math.floor(remain / 60), sec = remain % 60;
+  const lvl = remain <= 60 ? 'danger' : remain <= 300 ? 'warning' : '';
+  const d = $('timerDigits');
+  if (!d) return;
+  d.textContent = `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  d.className = 'timer-digits ' + lvl;
+  $('timerBar').className = 'timer-bar ' + lvl;
+  $('timerBar').style.width = (remain / total * 100) + '%';
+  $('timerBlock').className = 'timer-block ' + lvl;
+
+  if (remain <= 300 && remain > 60 && total > 360 && !Q.warned[300]) {
+    Q.warned[300] = true; alertUser('⏰ เหลือเวลา 5 นาที', 'warning');
+  }
+  if (remain <= 60 && remain > 0 && !Q.warned[60]) {
+    Q.warned[60] = true; alertUser('⏰ เหลือเวลา 1 นาที! ระบบจะส่งคำตอบอัตโนมัติเมื่อหมดเวลา', 'error');
+  }
+  if (remain <= 0) submitQuiz(true);
+}
+
+let audioCtx = null;
+function unlockAudio() {
+  try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
+}
+function beep() {
+  try {
+    if (!audioCtx) return;
+    [0, 0.35].forEach(t => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.25, audioCtx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + t + 0.3);
+      o.start(audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t + 0.3);
+    });
+  } catch (e) {}
+}
+function alertUser(msg, kind) {
+  toast(msg, kind, 8000);
+  beep();
+  try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) {}
+}
+
+/* ----- ตรวจจับการออกจากหน้าข้อสอบ ----- */
+let unloading = false;
+window.addEventListener('beforeunload', () => (unloading = true));   // กดรีเฟรชไม่นับเป็นการออกจากหน้า
+document.addEventListener('visibilitychange', () => {
+  if (!Q.s || Q.done || Q.submitting || unloading) return;
+  if (document.hidden) {
+    Q.tabs++;
+    store.set('tabs:' + Q.s.sessionId, Q.tabs);
+    api('log', { sessionId: Q.s.sessionId, deviceId: deviceId(), count: Q.tabs }, 1);
+  } else {
+    renderTabWarn();
+    toast(`ระบบบันทึกแล้วว่าคุณออกจากหน้าข้อสอบ (${Q.tabs} ครั้ง) ผู้สอนจะเห็นข้อมูลนี้`, 'warning');
+    tick();
+  }
+});
+
+function renderTabWarn() {
+  const el = $('tabWarn');
+  if (el) el.innerHTML = Q.tabs ? `<div class="alert alert-warning">⚠️ ออกจากหน้าข้อสอบแล้ว ${Q.tabs} ครั้ง (ผู้สอนเห็นข้อมูลนี้)</div>` : '';
+}
+
+/* ----- ส่งคำตอบ ----- */
+async function submitQuiz(isAuto) {
+  if (Q.submitting || Q.done) return;
+  Q.submitting = true;
+  clearInterval(Q.timer);
+  document.querySelectorAll('#qList input').forEach(r => (r.disabled = true));
+  const btn = $('btnSubmit');
+  btn.disabled = true;
+  btn.textContent = isAuto ? '⏰ หมดเวลา — กำลังส่งอัตโนมัติ…' : 'กำลังส่ง…';
+  $('submitMsg').innerHTML = '';
+  if (isAuto) alertUser('⏰ หมดเวลา ระบบกำลังส่งคำตอบให้อัตโนมัติ', 'error');
+
+  const s = Q.s;
+  const res = await api('submit', {
+    sessionId: s.sessionId, deviceId: deviceId(), answers: Q.answers, auto: isAuto, tabSwitches: Q.tabs,
+  }, 6);
+
+  if (res.ok) {
+    Q.done = true;
+    clearSession(s.sessionId);
+    return renderResult(res, { auto: isAuto });
+  }
+  Q.submitting = false;
+  if (res.blocked) { Q.done = true; clearSession(s.sessionId); return renderMessage(res.message, 'error'); }
+  // เน็ตหลุด / ระบบยุ่ง: คำตอบยังเก็บในเครื่อง ให้กดส่งซ้ำได้
+  $('submitMsg').innerHTML = `<div class="alert alert-error">❌ ${esc(res.message || 'ส่งไม่สำเร็จ')} — คำตอบของคุณยังอยู่ในเครื่อง กดส่งอีกครั้งได้</div>`;
+  btn.disabled = false;
+  btn.textContent = '↻ ส่งอีกครั้ง';
+  btn.onclick = () => submitQuiz(isAuto);
+}
+
+function renderResult(res, opt = {}) {
+  $('toast').innerHTML = '';
+  const pct = Number(res.percent) || 0;
+  const cls = pct >= 80 ? 'badge-green' : pct >= 50 ? 'badge-amber' : 'badge-red';
+  const notes = [];
+  if (opt.already || res.duplicate) notes.push('คุณส่งแบบทดสอบบทนี้ไปแล้ว');
+  if (opt.auto || res.auto) notes.push('ส่งอัตโนมัติเมื่อหมดเวลา');
+  if (res.lateSec) notes.push(`ส่งช้ากว่ากำหนด ${res.lateSec} วินาที (ผู้สอนจะพิจารณา)`);
+  root.innerHTML = `
+    <div class="card center">
+      <div class="card-title" style="justify-content:center">ผลการทดสอบ</div>
+      <div class="score-big">${esc(res.score)}<span style="font-size:22px;color:var(--muted)">/${esc(res.total)}</span></div>
+      <div style="margin:12px 0"><span class="badge ${cls}" style="font-size:16px">${esc(pct)}%</span></div>
+      <div class="alert alert-success" style="justify-content:center">✅ บันทึกผลเรียบร้อยแล้ว</div>
+      ${notes.map(n => `<div class="muted">${esc(n)}</div>`).join('')}
+    </div>`;
+}
+
+/* ===================== ADMIN ===================== */
+const A = { pin: null, st: null, qrTimer: null, slotTimer: null, pollTimer: null, rows: [], dept: '' };
+
+async function adminBoot() {
+  setHeader('แผงควบคุมผู้สอน', '');
+  const pin = sstore.get('pin');
+  if (pin) {
+    renderLoading('กำลังเข้าสู่ระบบ…');
+    const res = await api('admin.login', { pin });
+    if (res.ok) { A.pin = pin; return renderAdmin(res); }
+    sstore.del('pin');
+  }
+  renderPin();
+}
+
+function renderPin(err) {
+  root.innerHTML = `
+    <div class="card" style="max-width:380px;margin:0 auto">
+      <div class="card-title">เข้าสู่ระบบผู้สอน</div>
+      ${err ? `<div class="alert alert-error">${esc(err)}</div>` : ''}
+      <div class="field-label">PIN</div>
+      <input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password">
+      <button class="btn btn-primary" id="btnPin" style="width:100%;margin-top:14px">เข้าสู่ระบบ</button>
+    </div>`;
+  const go = async () => {
+    const pin = $('pinIn').value.trim();
+    if (!pin) return;
+    $('btnPin').disabled = true;
+    const res = await api('admin.login', { pin });
+    if (!res.ok) return renderPin(res.message);
+    A.pin = pin; sstore.set('pin', pin);
+    renderAdmin(res);
+  };
+  $('btnPin').onclick = go;
+  $('pinIn').onkeydown = e => e.key === 'Enter' && go();
+  $('pinIn').focus();
+}
+
+function studentBaseUrl() {
+  return location.origin + location.pathname + '?' + (SUBJECT !== 'default' ? 's=' + encodeURIComponent(SUBJECT) + '&' : '');
+}
+
+function renderAdmin(st) {
+  A.st = st;
+  setHeader(st.title, (st.subtitle ? st.subtitle + ' · ' : '') + 'แผงควบคุมผู้สอน', st.courseCode);
+  root.innerHTML = `
+    <div class="card">
+      <div class="card-title">ตั้งค่ารอบสอบ</div>
+      <div class="row2">
+        <div>
+          <div class="field-label">บทที่เปิดสอบ</div>
+          <select id="chSel">${st.chapters.map(c => `<option value="${c.ch}" ${c.ch === st.chapter ? 'selected' : ''}>บทที่ ${c.ch} (${c.count} ข้อ)</option>`).join('')}</select>
+        </div>
+        <div>
+          <div class="field-label">เวลาทำ (นาที)</div>
+          <input id="durIn" type="number" min="1" max="180" value="${st.durationMin}">
+        </div>
+        <div><button class="btn btn-ghost" id="btnSave" style="width:100%">💾 บันทึก</button></div>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px" class="muted">
+        <label><input type="checkbox" id="shQ" style="width:auto" ${st.shuffleQ ? 'checked' : ''}> สุ่มลำดับข้อ</label>
+        <label><input type="checkbox" id="shC" style="width:auto" ${st.shuffleC ? 'checked' : ''}> สุ่มลำดับตัวเลือก (อย่าเปิดถ้ามีตัวเลือก "ถูกทุกข้อ")</label>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <button class="btn" id="btnOpen" style="min-width:220px"></button>
+        <span class="muted" id="openHint"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">QR Code สำหรับนักศึกษา (เปลี่ยนทุก ${st.slotSeconds} วินาที)</div>
+      <div class="qr-wrap">
+        <div>
+          <div class="qr-box" id="qrBox" title="คลิกเพื่อขยาย"><div id="qrSmall"></div><div class="qr-closed">ปิดรับเข้าสอบ</div></div>
+          <div class="slot-bar-wrap"><div class="slot-bar" id="slotBar"></div></div>
+          <div class="muted center" style="margin-top:4px">QR เปลี่ยนใน <span id="slotSec">—</span> วิ</div>
+        </div>
+        <div class="qr-info">
+          <div class="field-label">ลิงก์ปัจจุบัน (ใช้ได้ไม่เกิน 60 วินาที)</div>
+          <div class="qr-url"><a id="qrLink" href="#" target="_blank">กำลังสร้าง…</a></div>
+          <ul class="muted" style="padding-left:18px;line-height:2;margin-top:10px">
+            <li>ให้นักศึกษาสแกนด้วยแอปกล้อง (เปิดใน Chrome/Safari)</li>
+            <li>แคป QR ส่งเพื่อนจะหมดอายุภายใน 1 นาที</li>
+            <li>เข้าครบแล้วกด "ปิดรับเข้าสอบ" เพื่อกันคนนอก</li>
+          </ul>
+          <button class="btn btn-primary" id="btnFull" style="width:100%;margin-top:10px">⛶ แสดง QR เต็มจอ</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">สถานะนักศึกษา · บทที่ <span id="dashCh">${st.chapter}</span></div>
+      <div class="row2" style="margin-bottom:12px">
+        <div><select id="deptFilter"><option value="">ทุกสาขา</option>${st.departments.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('')}</select></div>
+        <div style="flex:0 0 auto;min-width:0"><button class="btn btn-ghost" id="btnRefresh">↻ รีเฟรช</button></div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ชื่อ</th><th>รหัส</th><th>สถานะ</th><th>เวลาเหลือ / คะแนน</th><th>ออกจากหน้า</th><th>หมายเหตุ</th><th></th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="7" class="muted">กำลังโหลด…</td></tr></tbody>
+      </table></div>
+      <div class="muted" id="lastUpd" style="margin-top:8px"></div>
+    </div>
+
+    <div class="modal-backdrop" id="qrModal">
+      <div class="modal" id="qrModalBox">
+        <div style="font-weight:700;font-size:18px">สแกนเพื่อเข้าทำแบบทดสอบ · บทที่ <span id="mCh">${st.chapter}</span></div>
+        <div class="modal-qr" id="mQrWrap"><div id="qrBig"></div><div class="qr-closed" style="font-size:28px">ปิดรับเข้าสอบแล้ว</div></div>
+        <div><span class="big-sec" id="mSec">—</span> <span class="muted">วินาทีก่อน QR เปลี่ยน</span></div>
+        <div class="slot-bar-wrap" style="height:6px"><div class="slot-bar" id="mBar"></div></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn-ghost" id="btnFs" style="flex:1">⛶ เต็มหน้าจอ</button>
+          <button class="btn btn-ghost" id="btnClose" style="flex:1">✕ ปิด</button>
+        </div>
+      </div>
+    </div>`;
+
+  $('btnSave').onclick = async () => {
+    $('btnSave').disabled = true;
+    const res = await api('admin.update', {
+      pin: A.pin, chapter: Number($('chSel').value), durationMin: Number($('durIn').value),
+      shuffleQ: $('shQ').checked, shuffleC: $('shC').checked,
+    });
+    $('btnSave').disabled = false;
+    if (!res.ok) return toast(res.message, 'error');
+    applyState(res);
+    toast('บันทึกแล้ว — QR ถูกสร้างใหม่สำหรับบทที่ ' + res.chapter, 'success', 3000);
+    refreshQR(); refreshStatus();
+  };
+  $('btnOpen').onclick = async () => {
+    const next = !A.st.open;
+    if (!next && !(await confirmBox('ปิดรับเข้าสอบ? คนที่ยังไม่สแกนจะเข้าไม่ได้ (คนที่เริ่มทำแล้วทำต่อได้ตามปกติ)', 'ปิดรับ'))) return;
+    const res = await api('admin.update', { pin: A.pin, open: next });
+    if (!res.ok) return toast(res.message, 'error');
+    applyState(res);
+  };
+  $('qrBox').onclick = $('btnFull').onclick = () => $('qrModal').classList.add('open');
+  $('btnClose').onclick = () => { $('qrModal').classList.remove('open'); if (document.fullscreenElement) document.exitFullscreen(); };
+  $('btnFs').onclick = () => { try { $('qrModal').requestFullscreen(); } catch (e) {} };
+  $('deptFilter').onchange = e => { A.dept = e.target.value; renderStatus(); };
+  $('btnRefresh').onclick = refreshStatus;
+
+  applyState(st);
+  refreshQR();
+  refreshStatus();
+  clearInterval(A.pollTimer);
+  A.pollTimer = setInterval(() => !document.hidden && refreshStatus(), 10000);
+}
+
+function applyState(st) {
+  A.st = Object.assign(A.st || {}, st);
+  const open = A.st.open;
+  const b = $('btnOpen');
+  b.className = 'btn ' + (open ? 'btn-danger' : 'btn-success');
+  b.textContent = open ? '🔒 ปิดรับเข้าสอบ' : '🔓 เปิดรับเข้าสอบ';
+  $('openHint').innerHTML = open
+    ? '<span class="badge badge-green">● กำลังเปิดรับ</span>'
+    : '<span class="badge badge-red">● ปิดรับแล้ว</span>';
+  $('qrBox').classList.toggle('is-closed', !open);
+  $('mQrWrap').classList.toggle('is-closed', !open);
+  $('dashCh').textContent = $('mCh').textContent = A.st.chapter;
+}
+
+function drawQR(el, text, size) {
+  el.innerHTML = '';
+  if (typeof QRCode === 'undefined') { el.innerHTML = `<div class="muted" style="font-size:11px;word-break:break-all">${esc(text)}</div>`; return; }
+  new QRCode(el, { text, width: size, height: size, correctLevel: QRCode.CorrectLevel.M });
+}
+
+async function refreshQR() {
+  clearTimeout(A.qrTimer);
+  const res = await api('admin.qr', { pin: A.pin }, 1);
+  if (!res.ok) {
+    if (res.auth) { sstore.del('pin'); return renderPin(res.message); }
+    A.qrTimer = setTimeout(refreshQR, 4000);
+    return;
+  }
+  if (res.open !== A.st.open || res.chapter !== A.st.chapter) applyState({ open: res.open, chapter: res.chapter });
+  const url = studentBaseUrl() + 't=' + encodeURIComponent(res.token);
+  drawQR($('qrSmall'), url, 184);
+  drawQR($('qrBig'), url, 520);
+  $('qrLink').textContent = url; $('qrLink').href = url;
+
+  const total = A.st.slotSeconds * 1000, end = Date.now() + res.expiresInMs;
+  clearInterval(A.slotTimer);
+  const upd = () => {
+    const remain = Math.max(0, end - Date.now());
+    const pct = remain / total * 100 + '%';
+    $('slotBar').style.width = $('mBar').style.width = pct;
+    $('slotSec').textContent = $('mSec').textContent = Math.ceil(remain / 1000);
+  };
+  upd();
+  A.slotTimer = setInterval(upd, 250);
+  A.qrTimer = setTimeout(refreshQR, res.expiresInMs + 300);
+}
+
+async function refreshStatus() {
+  const res = await api('admin.status', { pin: A.pin }, 1);
+  if (!res.ok) return;
+  A.rows = res.rows;
+  A.statusAt = Date.now();
+  A.serverOffset = res.now - Date.now();
+  if (res.open !== A.st.open || res.chapter !== A.st.chapter) applyState({ open: res.open, chapter: res.chapter });
+  renderStatus();
+}
+
+const STATUS_LABEL = {
+  none: ['ยังไม่เข้า', 'badge-gray'],
+  active: ['กำลังทำ', 'badge-blue'],
+  submitted: ['ส่งแล้ว', 'badge-green'],
+  auto: ['ส่งอัตโนมัติ', 'badge-amber'],
+  late: ['ส่งช้า', 'badge-red'],
+};
+
+function renderStatus() {
+  const rows = A.rows.filter(r => !A.dept || r.dept === A.dept);
+  const c = { none: 0, active: 0, done: 0, flag: 0 };
+  rows.forEach(r => {
+    if (r.status === 'none') c.none++;
+    else if (r.status === 'active') c.active++;
+    else c.done++;
+    if (r.tabs >= 3 || r.blocked) c.flag++;
+  });
+  $('stats').innerHTML = `
+    <div class="stat"><b>${c.none}</b><span>ยังไม่เข้า</span></div>
+    <div class="stat"><b style="color:var(--accent)">${c.active}</b><span>กำลังทำ</span></div>
+    <div class="stat"><b style="color:var(--success)">${c.done}</b><span>ส่งแล้ว</span></div>
+    <div class="stat"><b style="color:var(--danger)">${c.flag}</b><span>น่าสงสัย</span></div>`;
+
+  const order = { active: 0, none: 1, late: 2, auto: 2, submitted: 2 };
+  rows.sort((a, b) => (order[a.status] - order[b.status]) || a.name.localeCompare(b.name, 'th'));
+  $('tbody').innerHTML = rows.length ? rows.map(r => {
+    const [label, cls] = STATUS_LABEL[r.status] || [r.status, 'badge-gray'];
+    let info = '';
+    if (r.status === 'active') {
+      const sec = Math.max(0, r.remainSec);
+      info = sec > 0 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : 'หมดเวลา';
+    } else if (r.status !== 'none') info = `<b>${r.score}/${r.total}</b>`;
+    const notes = [];
+    if (r.blocked) notes.push(`มีเครื่อง/ชื่ออื่นพยายามเข้า ${r.blocked} ครั้ง`);
+    if (r.lateSec) notes.push(`ช้า ${r.lateSec} วิ`);
+    if (r.status === 'active' && !r.deviceBound) notes.push('รอสแกนจากเครื่องใหม่');
+    const flag = r.tabs >= 3 || r.blocked;
+    return `<tr class="${flag ? 'flag' : ''}">
+      <td>${esc(r.name)}<div class="muted">${esc(r.dept)}</div></td>
+      <td>${esc(r.id)}</td>
+      <td><span class="badge ${cls}">${label}</span></td>
+      <td>${info}</td>
+      <td>${r.tabs ? `<span class="badge ${r.tabs >= 3 ? 'badge-red' : 'badge-amber'}">${r.tabs} ครั้ง</span>` : (r.status === 'none' ? '' : '0')}</td>
+      <td class="muted">${esc(notes.join(' · '))}</td>
+      <td>${r.status === 'active' && r.deviceBound ? `<button class="btn btn-ghost btn-sm" data-unbind="${esc(r.id)}" data-name="${esc(r.name)}">ย้ายเครื่อง</button>` : ''}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="7" class="muted">ไม่มีรายชื่อ</td></tr>`;
+
+  $('tbody').querySelectorAll('[data-unbind]').forEach(b => {
+    b.onclick = async () => {
+      if (!(await confirmBox(`ย้ายเครื่องให้ ${b.dataset.name}? นักศึกษาต้องสแกน QR ใหม่จากเครื่องใหม่ เวลาสอบเดินต่อจากเดิม`, 'ย้ายเครื่อง'))) return;
+      const res = await api('admin.unbind', { pin: A.pin, studentId: b.dataset.unbind });
+      toast(res.ok ? 'ปลดเครื่องแล้ว ให้นักศึกษาสแกน QR ใหม่' : res.message, res.ok ? 'success' : 'error', 4000);
+      refreshStatus();
+    };
+  });
+  $('lastUpd').textContent = 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH');
+}
+
+boot();
+</script>
+</body>
+</html>
